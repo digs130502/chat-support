@@ -2,18 +2,23 @@ import { NextResponse } from "next/server"; // Import NextResponse from Next.js 
 import OpenAI from "openai"; // Import OpenAI library for interacting with the OpenAI API
 
 // System prompt for the AI, providing guidelines on how to respond to users
-const systemPrompt = `
-You are a helpful and knowledgeable assistant. Your role is to provide accurate, concise, and thoughtful answers to any questions posed by the user. Be polite, professional, and aim to assist the user in the best way possible. If you don't know the answer to a question, do your best to provide guidance on where the user might find the information they need. Ensure that your responses are clear and free of jargon unless specifically requested by the user.
+const systemPrompt = (language) => `
+You are a helpful and knowledgeable assistant. 
+Your role is to provide accurate, concise, and thoughtful answers to any questions posed by the user. 
+Be polite, professional, and aim to assist the user in the best way possible. 
+If you don't know the answer to a question, do your best to provide guidance on where the user might find the information they need. 
+Ensure that your responses are clear and free of jargon unless specifically requested by the user.
+Respond in ${language === "es" ? "Spanish" : "English"}.
 `;
 
 // POST function to handle incoming requests
 export async function POST(req) {
   const openai = new OpenAI(); // Create a new instance of the OpenAI client
-  const data = await req.json(); // Parse the JSON body of the incoming request
+  const { data = [] , language = "en" } = await req.json(); // Parse the JSON body of the incoming request
 
   // Create a chat completion request to the OpenAI API
   const completion = await openai.chat.completions.create({
-    messages: [{ role: "system", content: systemPrompt }, ...data], // Include the system prompt and user messages
+    messages: [{ role: "system", content: systemPrompt(language) }, ...data], // Include the system prompt and user messages
     model: "gpt-4o-mini", // Specify the model to use
     stream: true, // Enable streaming responses
   });

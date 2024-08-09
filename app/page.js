@@ -1,5 +1,5 @@
 "use client";
-import { Box, Button, Stack, TextField } from "@mui/material";
+import { Box, Button, Stack, TextField, Select, MenuItem } from "@mui/material";
 import { useState, useRef, useEffect } from "react";
 
 export default function Home() {
@@ -13,6 +13,7 @@ export default function Home() {
 
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [language, setLanguage] = useState("en"); // Default language is English
 
   const sendMessage = async () => {
     if (!message.trim()) return; // Don't send empty messages
@@ -31,7 +32,10 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify([...messages, { role: "user", content: message }]),
+        body: JSON.stringify({
+          messages: [...messages, { role: "user", content: message }],
+          language: language,
+        }),
       });
 
       if (!response.ok) {
@@ -102,6 +106,17 @@ export default function Home() {
         p={2}
         spacing={3}
       >
+        <Stack direction="row" justifyContent="flex-end">
+          <Select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            displayEmpty
+          >
+            <MenuItem value="en">English</MenuItem>
+            <MenuItem value="es">Español</MenuItem>
+          </Select>
+        </Stack>   
+
         <Stack
           direction={"column"}
           spacing={2}
