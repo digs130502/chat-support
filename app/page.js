@@ -1,29 +1,34 @@
-"use client";
-import { Box, Button, Stack, TextField, Select, MenuItem } from "@mui/material";
-import { useState, useRef, useEffect } from "react";
+'use client';
+
+import { Box, Button, Stack, TextField, Select, MenuItem, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { useState, useRef, useEffect } from 'react';
+import { firestore } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 export default function Home() {
   const [messages, setMessages] = useState([
     {
-      role: "assistant",
-      content:
-        "Hi! I'm the Headstarter support assistant. How can I help you today?",
+      role: 'assistant',
+      content: "Hi! I'm the AI support assistant. How can I help you today?",
     },
   ]);
-
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
+  const [openFeedback, setOpenFeedback] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [language, setLanguage] = useState("en"); // Default language is English
+  const [language, setLanguage] = useState('en');
+  const [feedback, setFeedback] = useState('');
 
   const sendMessage = async () => {
     if (!message.trim()) return; // Don't send empty messages
     setIsLoading(true);
+    const userMessage = { role: 'user', content: message };
+    const newMessages = [...messages, userMessage];
 
-    setMessage("");
+    setMessage('');
     setMessages((messages) => [
       ...messages,
-      { role: "user", content: message },
-      { role: "assistant", content: "" },
+      userMessage,
+      { role: 'assistant', content: '' },
     ]);
 
     try {
@@ -39,7 +44,7 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        throw new Error('Network response was not ok');
       }
 
       const reader = response.body.getReader();
@@ -89,6 +94,40 @@ export default function Home() {
     scrollToBottom();
   }, [messages]);
 
+
+  const handleFeedbackOpen = () => {
+    setOpenFeedback(true);
+  };
+
+  const handleFeedbackClose = () => {
+    setOpenFeedback(false);
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedback.trim()) return;
+    try {
+      await addDoc(collection(firestore, 'feedbacks'), {
+        feedback,
+        timestamp: new Date(),
+      });
+      console.log('Feedback submitted:', feedback);
+      setMessages((messages) => [
+        ...messages,
+        { role: 'assistant', 
+          content: 'Thank you for your feedback!' },
+      ]);
+      setFeedback('');
+      handleFeedbackClose();
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      setMessages((messages) => [
+        ...messages,
+        { role: 'assistant', 
+          content: 'Error submitting feedback. Please try again later.' },
+      ]);
+    }
+  };
+
   return (
     <Box
       width="100vw"
@@ -99,14 +138,14 @@ export default function Home() {
       alignItems="center"
     >
       <Stack
-        direction={"column"}
+        direction={'column'}
         width="500px"
         height="700px"
         border="1px solid black"
         p={2}
         spacing={3}
       >
-        <Stack direction="row" justifyContent="flex-end">
+         <Stack direction="row" justifyContent="flex-end">
           <Select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
@@ -116,9 +155,8 @@ export default function Home() {
             <MenuItem value="es">Español</MenuItem>
           </Select>
         </Stack>   
-
         <Stack
-          direction={"column"}
+          direction={'column'}
           spacing={2}
           flexGrow={1}
           overflow="auto"
@@ -129,14 +167,14 @@ export default function Home() {
               key={index}
               display="flex"
               justifyContent={
-                message.role === "assistant" ? "flex-start" : "flex-end"
+                message.role === 'assistant' ? 'flex-start' : 'flex-end'
               }
             >
               <Box
                 bgcolor={
-                  message.role === "assistant"
-                    ? "primary.main"
-                    : "secondary.main"
+                  message.role === 'assistant'
+                    ? 'primary.main'
+                    : 'secondary.main'
                 }
                 color="white"
                 borderRadius={16}
@@ -146,16 +184,15 @@ export default function Home() {
               </Box>
             </Box>
           ))}
-          <div ref={messagesEndRef} />
         </Stack>
-        <Stack direction={"row"} spacing={2}>
+        <Stack direction={'row'} spacing={2}>
           <TextField
             label="Message"
             fullWidth
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={isLoading}
+            onKeyPress = {handleKeyPress}
+            disabled = {isLoading}
           />
           <Button
             variant="contained"
@@ -165,7 +202,30 @@ export default function Home() {
             {isLoading ? "Sending..." : "Send"}
           </Button>
         </Stack>
+        <Button variant="outlined" onClick={handleFeedbackOpen}>
+          Feedback
+        </Button>
       </Stack>
+
+      <Dialog open={openFeedback} onClose={handleFeedbackClose}>
+        <DialogTitle>Submit Feedback</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Feedback"
+            fullWidth
+            multiline
+            rows={4}
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleFeedbackClose}>Cancel</Button>
+          <Button onClick={handleFeedbackSubmit}>Submit</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
